@@ -11,8 +11,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Base64;
 
 @SpringBootApplication
 @RestController
@@ -20,6 +29,9 @@ import java.util.List;
 public class Application {
 
     private final StorageService storageService;
+
+    @Autowired
+    StorageProperties properties;
 
     @Autowired
     public Application(StorageService storageService) {
@@ -40,9 +52,25 @@ public class Application {
         for(String s : baseOrUrls){
             if(!s.isEmpty()){
                 if (s.startsWith("http")) {
-                    //TODO: store to queue and than download from url
+                    try(InputStream in = new URL(s).openStream()){
+                        String[] tmp = s.split("/");
+                        String filename =tmp[tmp.length-1];
+                        String pathFile = properties.getLocation()+ java.nio.file.FileSystems.getDefault().getSeparator() +filename;
+                        Files.copy(in, Paths.get(pathFile));
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    }
                 } else {
-                    //TODO: convert base64 to file
+                    byte[]  imageByteArray = Base64.getDecoder().decode(s);
+                    Date dt = new Date();
+                    String filename = dt.getTime()+".jpeg";
+                    String pathFile = properties.getLocation()+ java.nio.file.FileSystems.getDefault().getSeparator() +filename;
+                    try (FileOutputStream fos = new FileOutputStream(pathFile)) {
+                        fos.write(imageByteArray);
+                        fos.flush();
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    }
                 }
             }
         }
