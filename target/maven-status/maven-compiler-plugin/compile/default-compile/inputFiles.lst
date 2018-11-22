@@ -1,1 +1,6 @@
+/Users/ilya/gs-spring-boot-docker/complete/src/main/java/hello/storage/FileSystemStorageService.java
+/Users/ilya/gs-spring-boot-docker/complete/src/main/java/hello/storage/StorageFileNotFoundException.java
 /Users/ilya/gs-spring-boot-docker/complete/src/main/java/hello/Application.java
+/Users/ilya/gs-spring-boot-docker/complete/src/main/java/hello/storage/StorageException.java
+/Users/ilya/gs-spring-boot-docker/complete/src/main/java/hello/storage/StorageProperties.java
+/Users/ilya/gs-spring-boot-docker/complete/src/main/java/hello/storage/StorageService.java
