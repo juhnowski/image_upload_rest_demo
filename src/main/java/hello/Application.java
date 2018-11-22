@@ -11,13 +11,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -42,10 +45,12 @@ public class Application {
     public List<String> home(@RequestParam("file") MultipartFile[] files, @RequestParam("baseOrUrl") String[] baseOrUrls) {
 
         ArrayList<String> result = new ArrayList<>();
+        ArrayList<String> fileList = new ArrayList<>();
 
         for(MultipartFile file : files){
             if(!file.isEmpty()){
-                storageService.store(file);
+                String pathFile = properties.getLocation()+ java.nio.file.FileSystems.getDefault().getSeparator() +storageService.store(file);
+                fileList.add(pathFile);
             }
         }
 
@@ -56,7 +61,8 @@ public class Application {
                         String[] tmp = s.split("/");
                         String filename =tmp[tmp.length-1];
                         String pathFile = properties.getLocation()+ java.nio.file.FileSystems.getDefault().getSeparator() +filename;
-                        Files.copy(in, Paths.get(pathFile));
+                        Files.copy(in, Paths.get(pathFile), StandardCopyOption.REPLACE_EXISTING);
+                        fileList.add(pathFile);
                     } catch (Exception e){
                         e.printStackTrace();
                     }
@@ -68,6 +74,7 @@ public class Application {
                     try (FileOutputStream fos = new FileOutputStream(pathFile)) {
                         fos.write(imageByteArray);
                         fos.flush();
+                        fileList.add(pathFile);
                     } catch (Exception e){
                         e.printStackTrace();
                     }
@@ -75,8 +82,28 @@ public class Application {
             }
         }
 
-        // TODO: generate
+        for(String fn : fileList){
+            String thumbnail = getNewFileName(fn);
+            saveScaledImage(fn, thumbnail);
+            result.add(thumbnail);
+        }
+
         return result;
+    }
+
+    private String getNewFileName(String pathFile){
+        String[] s = pathFile.split("\\.");
+        String ext = "";
+        if (s.length>0) {
+            ext = s[s.length - 1];
+        } else {
+            ext = "jpeg"; //default extension, TODO: analyse file's content
+        }
+
+        String tempPathName = pathFile.replace("."+ext,"");
+        StringBuilder sb = new StringBuilder(tempPathName);
+        sb.append("_thumbnail.").append(ext);
+        return sb.toString();
     }
 
     @GetMapping("/")
@@ -115,5 +142,44 @@ public class Application {
             storageService.deleteAll();
             storageService.init();
         };
+    }
+
+
+    private  void saveScaledImage(String filePath,String outputFile){
+        try {
+
+            BufferedImage sourceImage = ImageIO.read(new File(filePath));
+            int width = sourceImage.getWidth();
+            int height = sourceImage.getHeight();
+
+            if(width>height){
+                float extraSize=    height-100;
+                float percentHight = (extraSize/height)*100;
+                float percentWidth = width - ((width/100)*percentHight);
+                BufferedImage img = new BufferedImage((int)percentWidth, 100, BufferedImage.TYPE_INT_RGB);
+                Image scaledImage = sourceImage.getScaledInstance((int)percentWidth, 100, Image.SCALE_SMOOTH);
+                img.createGraphics().drawImage(scaledImage, 0, 0, null);
+                BufferedImage img2 = new BufferedImage(100, 100 ,BufferedImage.TYPE_INT_RGB);
+                img2 = img.getSubimage((int)((percentWidth-100)/2), 0, 100, 100);
+
+                ImageIO.write(img2, "jpg", new File(outputFile));
+            }else{
+                float extraSize=    width-100;
+                float percentWidth = (extraSize/width)*100;
+                float  percentHight = height - ((height/100)*percentWidth);
+                BufferedImage img = new BufferedImage(100, (int)percentHight, BufferedImage.TYPE_INT_RGB);
+                Image scaledImage = sourceImage.getScaledInstance(100,(int)percentHight, Image.SCALE_SMOOTH);
+                img.createGraphics().drawImage(scaledImage, 0, 0, null);
+                BufferedImage img2 = new BufferedImage(100, 100 ,BufferedImage.TYPE_INT_RGB);
+                img2 = img.getSubimage(0, (int)((percentHight-100)/2), 100, 100);
+
+                ImageIO.write(img2, "jpg", new File(outputFile));
+            }
+
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
     }
 }
