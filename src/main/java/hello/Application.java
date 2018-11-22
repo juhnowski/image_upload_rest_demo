@@ -2,6 +2,7 @@ package hello;
 
 import hello.storage.StorageProperties;
 import hello.storage.StorageService;
+import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -83,27 +84,30 @@ public class Application {
         }
 
         for(String fn : fileList){
-            String thumbnail = getNewFileName(fn);
-            saveScaledImage(fn, thumbnail);
-            result.add(thumbnail);
+
+            String ext = FilenameUtils.getExtension(fn);
+            String tempPathName = fn.replace("."+ext,"");
+            StringBuilder sb = new StringBuilder(tempPathName);
+            sb.append("_thumbnail.").append(ext);
+
+
+            String thumbnail = sb.toString();
+            saveScaledImage(fn, thumbnail, ext);
+            result.add(encode(thumbnail));
         }
 
         return result;
     }
 
-    private String getNewFileName(String pathFile){
-        String[] s = pathFile.split("\\.");
-        String ext = "";
-        if (s.length>0) {
-            ext = s[s.length - 1];
-        } else {
-            ext = "jpeg"; //default extension, TODO: analyse file's content
+    private String encode(String filename){
+        try {
+            File file = new File(filename);
+            byte[] fileContent = Files.readAllBytes(file.toPath());
+            return Base64.getEncoder().encodeToString(fileContent);
+        } catch (Exception e){
+            e.printStackTrace();
+            return "";
         }
-
-        String tempPathName = pathFile.replace("."+ext,"");
-        StringBuilder sb = new StringBuilder(tempPathName);
-        sb.append("_thumbnail.").append(ext);
-        return sb.toString();
     }
 
     @GetMapping("/")
@@ -145,7 +149,7 @@ public class Application {
     }
 
 
-    private  void saveScaledImage(String filePath,String outputFile){
+    private  void saveScaledImage(String filePath,String outputFile, String ext){
         try {
 
             BufferedImage sourceImage = ImageIO.read(new File(filePath));
@@ -162,7 +166,7 @@ public class Application {
                 BufferedImage img2 = new BufferedImage(100, 100 ,BufferedImage.TYPE_INT_RGB);
                 img2 = img.getSubimage((int)((percentWidth-100)/2), 0, 100, 100);
 
-                ImageIO.write(img2, "jpg", new File(outputFile));
+                ImageIO.write(img2, ext, new File(outputFile));
             }else{
                 float extraSize=    width-100;
                 float percentWidth = (extraSize/width)*100;
@@ -173,7 +177,7 @@ public class Application {
                 BufferedImage img2 = new BufferedImage(100, 100 ,BufferedImage.TYPE_INT_RGB);
                 img2 = img.getSubimage(0, (int)((percentHight-100)/2), 100, 100);
 
-                ImageIO.write(img2, "jpg", new File(outputFile));
+                ImageIO.write(img2, ext, new File(outputFile));
             }
 
         } catch (IOException e) {
