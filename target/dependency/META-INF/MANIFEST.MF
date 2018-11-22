@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Created-By: Apache Maven 3.3.9
+Built-By: ilya
+Build-Jdk: 11
+Implementation-Title: Spring Boot Docker
+Implementation-Version: 0.1.0
+Implementation-Vendor-Id: org.springframework
+Implementation-URL: https://projects.spring.io/spring-boot/#/spring-boot
+ -starter-parent/gs-spring-boot-docker
+Main-Class: org.springframework.boot.loader.JarLauncher
+Start-Class: hello.Application
+Spring-Boot-Version: 2.0.5.RELEASE
+Spring-Boot-Classes: BOOT-INF/classes/
+Spring-Boot-Lib: BOOT-INF/lib/
+
